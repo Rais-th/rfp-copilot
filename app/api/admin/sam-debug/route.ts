@@ -21,34 +21,38 @@ export async function GET(req: NextRequest) {
   const fmt = (d: Date) =>
     `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
 
-  const url = `https://api.sam.gov/prod/opportunities/v2/search?api_key=${encodeURIComponent(key)}&limit=1&postedFrom=${fmt(weekAgo)}&postedTo=${fmt(today)}&ptype=o,p,k`;
+  const tests = [
+    `https://api.sam.gov/prod/opportunities/v2/search?api_key=${key}&limit=1&postedFrom=${fmt(weekAgo)}&postedTo=${fmt(today)}`,
+    `https://api.sam.gov/opportunities/v2/search?api_key=${key}&limit=1&postedFrom=${fmt(weekAgo)}&postedTo=${fmt(today)}`,
+    `https://api.sam.gov/entity-information/v3/entities?api_key=${key}&samRegistered=Yes&registrationStatus=A&includeSections=coreData`,
+    `https://api.sam.gov/data-services/v1/extracts?api_key=${key}`,
+  ];
 
-  const safeUrl = url.replace(key, `<key:${keyPrefix}...${keySuffix}>`);
-
-  let status = 0;
-  let body = "";
-  try {
-    const res = await fetch(url, {
-      headers: { accept: "application/json" },
-    });
-    status = res.status;
-    body = await res.text();
-  } catch (err) {
-    return NextResponse.json({
-      keyLen,
-      keyPrefix,
-      keySuffix,
-      safeUrl,
-      fetchError: (err as Error).message,
-    });
+  const results = [];
+  for (const testUrl of tests) {
+    const safeUrl = testUrl.replace(key, `<key:${keyPrefix}...${keySuffix}>`);
+    try {
+      const res = await fetch(testUrl, {
+        headers: { accept: "application/json" },
+      });
+      const body = await res.text();
+      results.push({
+        safeUrl,
+        status: res.status,
+        bodyPreview: body.slice(0, 300),
+      });
+    } catch (err) {
+      results.push({
+        safeUrl,
+        fetchError: (err as Error).message,
+      });
+    }
   }
 
   return NextResponse.json({
     keyLen,
     keyPrefix,
     keySuffix,
-    safeUrl,
-    status,
-    bodyPreview: body.slice(0, 800),
+    results,
   });
 }
