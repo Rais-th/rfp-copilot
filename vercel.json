@@ -1,0 +1,13 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/ingest-rfps",
+      "schedule": "0 11 * * *"
+    }
+  ],
+  "functions": {
+    "app/api/generate/route.ts": { "maxDuration": 60 },
+    "app/api/validate/route.ts": { "maxDuration": 60 },
+    "app/api/cron/ingest-rfps/route.ts": { "maxDuration": 300 }
+  }
+}
