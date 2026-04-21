@@ -14,17 +14,22 @@ export default async function HomePage() {
   return (
     <div className="space-y-24">
       <section className="space-y-6 max-w-2xl">
-        <p className="label">Memphis civic infrastructure</p>
+        <p className="label">Civic AI infrastructure</p>
         <h1 className="text-4xl md:text-5xl font-medium tracking-tight leading-[1.1]">
-          Win Memphis city contracts. In hours, not days.
+          Win public sector contracts. In hours, not days.
         </h1>
         <p className="text-subtle text-lg leading-relaxed">
-          RFP Copilot reads city solicitations and generates compliant response
-          skeletons for minority and women owned small businesses. Open source.
-          No account. Your business data stays on your machine.
+          RFP Copilot reads a solicitation PDF and generates a compliant
+          response skeleton mapped to your business profile. Built for
+          minority and women owned small businesses chasing city, county, and
+          federal contracts. Open source. No account. Your business data
+          stays on your machine.
         </p>
-        <div className="flex gap-3 pt-2">
-          <Link href="/rfps" className="btn btn-primary">
+        <div className="flex gap-3 pt-2 flex-wrap">
+          <Link href="/rfps/new" className="btn btn-primary">
+            Submit an RFP
+          </Link>
+          <Link href="/rfps" className="btn btn-ghost">
             Browse open RFPs
           </Link>
           <Link href="/about" className="btn btn-ghost">
@@ -34,7 +39,7 @@ export default async function HomePage() {
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-3 gap-px bg-line rounded-lg overflow-hidden border hairline">
-        <Stat value={String(activeCount)} label="Active Memphis RFPs indexed" />
+        <Stat value={String(activeCount)} label="Active RFPs indexed" />
         <Stat value="< 5 min" label="Median draft generation time" />
         <Stat value="100%" label="MBE/WBE focused" />
       </section>
@@ -42,9 +47,10 @@ export default async function HomePage() {
       <section className="max-w-xl space-y-4">
         <p className="label">What it does</p>
         <ol className="space-y-4 text-sm leading-relaxed">
-          <Step n={1} title="Ingests Memphis Beacon solicitations">
-            A nightly scraper pulls new RFPs, parses the PDFs, and extracts
-            required response sections.
+          <Step n={1} title="Ingests solicitations">
+            Daily pull of federal opportunities from SAM.gov, filtered for
+            Tennessee and matching NAICS codes. Or paste any solicitation URL
+            or upload the PDF directly.
           </Step>
           <Step n={2} title="Matches your business profile">
             Your SBA certifications, NAICS codes, and past work live in your

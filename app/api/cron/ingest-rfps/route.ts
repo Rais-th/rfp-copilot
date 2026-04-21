@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  scrapeMemphisListings,
-  fetchRfpDocumentText,
-} from "@/lib/scraper/memphis-beacon";
+import { searchSamOpportunities, samOpportunityToRow } from "@/lib/sources/sam-gov";
 import { parseRfpStructure } from "@/lib/parser/structure";
 import { upsertRfp } from "@/lib/db/queries";
+import { fetchDocumentText } from "@/lib/fetch-doc";
 import { db } from "@/lib/db/client";
 import { rfps } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -24,25 +22,43 @@ export async function GET(req: NextRequest) {
   }
 
   const started = Date.now();
-  const listings = await scrapeMemphisListings();
+  let opportunities;
+  try {
+    opportunities = await searchSamOpportunities({
+      state: "TN",
+      postedFromDaysAgo: 30,
+      limit: 25,
+    });
+  } catch (err) {
+    return NextResponse.json(
+      {
+        ok: false,
+        step: "sam_search",
+        error: (err as Error).message,
+      },
+      { status: 500 },
+    );
+  }
+
   let inserted = 0;
   let parsed = 0;
   const errors: string[] = [];
 
-  for (const listing of listings.slice(0, 40)) {
-    const id = makeId("memphis", listing.sourceRef);
+  for (const opp of opportunities) {
+    const row = samOpportunityToRow(opp);
+    const id = makeId("sam", row.sourceRef);
     try {
       await upsertRfp({
         id,
-        source: "memphis",
-        sourceRef: listing.sourceRef,
-        title: listing.title,
-        agency: listing.agency,
-        category: listing.category,
-        issuedAt: listing.issuedAt,
-        closesAt: listing.closesAt,
-        documentUrl: listing.documentUrl,
-        listingUrl: listing.listingUrl,
+        source: "sam",
+        sourceRef: row.sourceRef,
+        title: row.title,
+        agency: row.agency,
+        category: row.category,
+        issuedAt: row.issuedAt,
+        closesAt: row.closesAt,
+        documentUrl: row.documentUrl,
+        listingUrl: row.listingUrl,
       });
       inserted++;
     } catch (err) {
@@ -58,10 +74,14 @@ export async function GET(req: NextRequest) {
         .limit(1);
       if (existing[0]?.parsed) continue;
 
-      const docText =
-        existing[0]?.rawText ??
-        (await fetchRfpDocumentText(listing.documentUrl));
-      if (!docText) continue;
+      let docText = existing[0]?.rawText ?? null;
+      if (!docText) {
+        const doc = row.documentUrl
+          ? await fetchDocumentText(row.documentUrl)
+          : null;
+        docText = doc?.text ?? row.description ?? null;
+      }
+      if (!docText || docText.length < 200) continue;
 
       const structured = await parseRfpStructure(docText);
       await db
@@ -76,7 +96,8 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ok: true,
-    listings: listings.length,
+    source: "sam.gov",
+    total: opportunities.length,
     inserted,
     parsed,
     ms: Date.now() - started,

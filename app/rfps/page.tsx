@@ -14,16 +14,21 @@ export default async function RfpsPage() {
 
   return (
     <div className="space-y-8">
-      <header className="space-y-2">
-        <p className="label">Open solicitations</p>
-        <h1 className="text-3xl font-medium tracking-tight">
-          Memphis RFPs and RFQs
-        </h1>
-        <p className="text-subtle text-sm max-w-prose">
-          Active city solicitations indexed nightly from the Memphis
-          procurement portal. Click any row to see the parsed requirements and
-          generate a draft response.
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div className="space-y-2">
+          <p className="label">Open solicitations</p>
+          <h1 className="text-3xl font-medium tracking-tight">
+            Active RFPs
+          </h1>
+          <p className="text-subtle text-sm max-w-prose">
+            Indexed nightly from SAM.gov, filtered for Tennessee. Click any
+            row to see the parsed requirements and generate a draft response.
+            You can also submit any RFP URL or PDF directly.
+          </p>
+        </div>
+        <Link href="/rfps/new" className="btn btn-primary shrink-0">
+          Submit RFP
+        </Link>
       </header>
 
       {errMessage ? (
@@ -32,10 +37,18 @@ export default async function RfpsPage() {
           body={`Set POSTGRES_URL in .env.local to see live listings. ${errMessage}`}
         />
       ) : rfps.length === 0 ? (
-        <EmptyState
-          title="No active RFPs indexed yet"
-          body="Run the ingestion cron once deployed, or hit /api/cron/ingest-rfps locally with the CRON_SECRET header."
-        />
+        <div className="card p-10 text-center space-y-3">
+          <div className="font-medium">No active RFPs indexed yet</div>
+          <p className="text-subtle text-sm max-w-prose mx-auto">
+            The nightly ingest runs at 06:00 CT. You can also submit any RFP
+            URL or PDF right now to parse it on demand.
+          </p>
+          <div className="pt-2">
+            <Link href="/rfps/new" className="btn btn-primary">
+              Submit an RFP
+            </Link>
+          </div>
+        </div>
       ) : (
         <div className="card divide-y divide-line">
           {rfps.map((r) => (

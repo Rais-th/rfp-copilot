@@ -23,6 +23,7 @@ export default function RootLayout({
             </Link>
             <nav className="flex items-center gap-6 text-sm text-subtle">
               <Link href="/rfps" className="hover:text-ink">RFPs</Link>
+              <Link href="/rfps/new" className="hover:text-ink">Submit</Link>
               <Link href="/profile" className="hover:text-ink">Profile</Link>
               <Link href="/about" className="hover:text-ink">About</Link>
               <a

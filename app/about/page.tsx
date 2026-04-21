@@ -8,26 +8,26 @@ export default function AboutPage() {
 
       <section className="space-y-3 text-sm leading-relaxed">
         <p>
-          RFP Copilot is a lightweight, open source tool that reads Memphis
-          public sector solicitations and produces compliant response
-          skeletons for minority and women owned small businesses. The goal is
-          not to automate proposal writing. The goal is to cut the blank page
+          RFP Copilot is a lightweight, open source tool that reads public
+          sector solicitations and produces compliant response skeletons for
+          minority and women owned small businesses. The goal is not to
+          automate proposal writing. The goal is to cut the blank page
           problem from twenty hours of expert time to thirty minutes of
           editing.
         </p>
         <p>
           Every draft is a starting point. You, the business owner, must
           verify every factual claim, every date, every qualification, and
-          every certification number before submitting to the City. The tool
-          will never submit on your behalf.
+          every certification number before submitting to any procuring
+          authority. The tool will never submit on your behalf.
         </p>
       </section>
 
       <section className="space-y-3">
         <p className="label">Data sources</p>
         <ul className="text-sm space-y-1.5">
-          <Li>Memphis procurement solicitations portal, public HTML.</Li>
-          <Li>Source RFP PDF documents attached to each listing.</Li>
+          <Li>SAM.gov public opportunities API, filtered for Tennessee.</Li>
+          <Li>Any RFP URL or PDF submitted directly by a user.</Li>
           <Li>Your business profile, stored only in your browser.</Li>
         </ul>
       </section>
