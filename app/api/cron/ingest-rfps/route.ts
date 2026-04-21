@@ -25,9 +25,9 @@ export async function GET(req: NextRequest) {
   let opportunities;
   try {
     opportunities = await searchSamOpportunities({
-      state: "TN",
-      postedFromDaysAgo: 30,
-      limit: 25,
+      query: "Tennessee",
+      size: 25,
+      activeOnly: true,
     });
   } catch (err) {
     return NextResponse.json(

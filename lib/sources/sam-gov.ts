@@ -1,68 +1,37 @@
-const BASE = "https://api.sam.gov/prod/opportunities/v2/search";
+const BASE = "https://sam.gov/api/prod/sgs/v1/search";
 
 export type SamOpportunity = {
-  noticeId: string;
-  title: string;
-  solicitationNumber: string | null;
-  department: string | null;
-  subTier: string | null;
-  office: string | null;
-  postedDate: string | null;
-  responseDeadLine: string | null;
-  naicsCode: string | null;
-  classificationCode: string | null;
-  active: string | null;
-  type: string | null;
-  typeOfSetAsideDescription: string | null;
-  uiLink: string | null;
-  description: string | null;
-  resourceLinks: string[] | null;
-  pointOfContact:
-    | { email?: string; fullName?: string; phone?: string }[]
-    | null;
-  placeOfPerformance: {
-    city?: { name?: string } | null;
-    state?: { name?: string; code?: string } | null;
-  } | null;
+  _id: string;
+  title?: string;
+  solicitationNumber?: string | null;
+  publishDate?: string | null;
+  modifiedDate?: string | null;
+  responseDate?: string | null;
+  descriptions?: { content?: string; lastModifiedDate?: string }[] | null;
+  organizationName?: string | null;
+  naicsList?: { code?: string; value?: string }[] | null;
+  classificationCode?: string | null;
 };
 
 export type SamSearchParams = {
-  state?: string;
-  ncode?: string;
-  postedFromDaysAgo?: number;
-  limit?: number;
-  offset?: number;
-  ptype?: string;
+  query?: string;
+  size?: number;
+  activeOnly?: boolean;
 };
 
 export async function searchSamOpportunities(
   params: SamSearchParams = {},
 ): Promise<SamOpportunity[]> {
-  const apiKey = process.env.SAM_GOV_API_KEY;
-  if (!apiKey) {
-    throw new Error("SAM_GOV_API_KEY missing");
-  }
-  const {
-    state = "TN",
-    postedFromDaysAgo = 14,
-    limit = 50,
-    offset = 0,
-    ptype = "o,p,k",
-  } = params;
-
-  const postedFrom = formatDate(daysAgo(postedFromDaysAgo));
-  const postedTo = formatDate(new Date());
+  const { query = "Tennessee", size = 25, activeOnly = true } = params;
 
   const qs = [
-    `api_key=${encodeURIComponent(apiKey)}`,
-    `limit=${limit}`,
-    `offset=${offset}`,
-    `postedFrom=${postedFrom}`,
-    `postedTo=${postedTo}`,
-    `ptype=${ptype}`,
+    "index=opp",
+    "sort=-modifiedDate",
+    "mode=search",
+    `size=${size}`,
+    `q=${encodeURIComponent(query)}`,
   ];
-  if (state) qs.push(`state=${state}`);
-  if (params.ncode) qs.push(`ncode=${params.ncode}`);
+  if (activeOnly) qs.push("is_active=true");
   const url = `${BASE}?${qs.join("&")}`;
 
   const res = await fetch(url, {
@@ -73,42 +42,37 @@ export async function searchSamOpportunities(
     const body = await res.text().catch(() => "");
     throw new Error(`SAM.gov ${res.status}: ${body.slice(0, 200)}`);
   }
-  const data = (await res.json()) as { opportunitiesData?: SamOpportunity[] };
-  return data.opportunitiesData ?? [];
-}
-
-function daysAgo(n: number) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d;
-}
-
-function formatDate(d: Date) {
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${mm}/${dd}/${d.getFullYear()}`;
+  const data = (await res.json()) as {
+    _embedded?: { results?: SamOpportunity[] };
+  };
+  return data._embedded?.results ?? [];
 }
 
 export function samOpportunityToRow(o: SamOpportunity) {
-  const city =
-    (o.placeOfPerformance?.city?.name ?? "") +
-    (o.placeOfPerformance?.state?.code
-      ? `, ${o.placeOfPerformance.state.code}`
-      : "");
+  const descText = o.descriptions?.[0]?.content ?? null;
+  const naics = o.naicsList?.[0]?.code ?? null;
   return {
-    sourceRef: o.noticeId,
-    title: o.title,
-    agency: [o.department, o.subTier, o.office].filter(Boolean).join(" | ") || null,
-    category: o.naicsCode
-      ? `NAICS ${o.naicsCode}${o.typeOfSetAsideDescription ? ` | ${o.typeOfSetAsideDescription}` : ""}`
-      : o.typeOfSetAsideDescription ?? null,
-    issuedAt: o.postedDate ? new Date(o.postedDate) : null,
-    closesAt: o.responseDeadLine ? new Date(o.responseDeadLine) : null,
-    documentUrl: o.resourceLinks?.[0] ?? null,
-    listingUrl: o.uiLink ?? null,
-    contactName: o.pointOfContact?.[0]?.fullName ?? null,
-    contactEmail: o.pointOfContact?.[0]?.email ?? null,
-    placeOfPerformance: city || null,
-    description: o.description ?? null,
+    sourceRef: o._id,
+    title: (o.title ?? "Untitled").slice(0, 500),
+    agency: o.organizationName ?? null,
+    category: naics ? `NAICS ${naics}` : o.classificationCode ?? null,
+    issuedAt: o.publishDate ? new Date(o.publishDate) : null,
+    closesAt: o.responseDate ? new Date(o.responseDate) : null,
+    documentUrl: null as string | null,
+    listingUrl: `https://sam.gov/opp/${o._id}/view`,
+    description: stripHtml(descText ?? ""),
   };
+}
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style[\s\S]*?<\/style>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/\s+/g, " ")
+    .trim();
 }
