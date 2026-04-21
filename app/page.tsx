@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getActiveRfpsCount } from "@/lib/db/queries";
 
-export const revalidate = 3600;
+export const revalidate = 60;
 
 export default async function HomePage() {
   let activeCount = 0;
