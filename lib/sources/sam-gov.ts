@@ -35,7 +35,7 @@ export async function searchSamOpportunities(
   const url = `${BASE}?${qs.join("&")}`;
 
   const res = await fetch(url, {
-    headers: { accept: "application/json" },
+    headers: { accept: "application/hal+json, application/json" },
     cache: "no-store",
   });
   if (!res.ok) {
