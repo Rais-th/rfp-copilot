@@ -1,4 +1,4 @@
-const BASE = "https://api.sam.gov/opportunities/v2/search";
+const BASE = "https://api.sam.gov/prod/opportunities/v2/search";
 
 export type SamOpportunity = {
   noticeId: string;
