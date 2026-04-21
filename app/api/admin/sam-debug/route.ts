@@ -21,19 +21,14 @@ export async function GET(req: NextRequest) {
   const fmt = (d: Date) =>
     `${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}/${d.getFullYear()}`;
 
-  const url = new URL("https://api.sam.gov/prod/opportunities/v2/search");
-  url.searchParams.set("api_key", key);
-  url.searchParams.set("limit", "1");
-  url.searchParams.set("postedFrom", fmt(weekAgo));
-  url.searchParams.set("postedTo", fmt(today));
-  url.searchParams.set("ptype", "o,p,k");
+  const url = `https://api.sam.gov/prod/opportunities/v2/search?api_key=${encodeURIComponent(key)}&limit=1&postedFrom=${fmt(weekAgo)}&postedTo=${fmt(today)}&ptype=o,p,k`;
 
-  const safeUrl = url.toString().replace(key, `<key:${keyPrefix}...${keySuffix}>`);
+  const safeUrl = url.replace(key, `<key:${keyPrefix}...${keySuffix}>`);
 
   let status = 0;
   let body = "";
   try {
-    const res = await fetch(url.toString(), {
+    const res = await fetch(url, {
       headers: { accept: "application/json" },
     });
     status = res.status;

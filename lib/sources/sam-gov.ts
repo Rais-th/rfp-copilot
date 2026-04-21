@@ -53,17 +53,19 @@ export async function searchSamOpportunities(
   const postedFrom = formatDate(daysAgo(postedFromDaysAgo));
   const postedTo = formatDate(new Date());
 
-  const url = new URL(BASE);
-  url.searchParams.set("api_key", apiKey);
-  url.searchParams.set("limit", String(limit));
-  url.searchParams.set("offset", String(offset));
-  url.searchParams.set("postedFrom", postedFrom);
-  url.searchParams.set("postedTo", postedTo);
-  url.searchParams.set("ptype", ptype);
-  if (state) url.searchParams.set("state", state);
-  if (params.ncode) url.searchParams.set("ncode", params.ncode);
+  const qs = [
+    `api_key=${encodeURIComponent(apiKey)}`,
+    `limit=${limit}`,
+    `offset=${offset}`,
+    `postedFrom=${postedFrom}`,
+    `postedTo=${postedTo}`,
+    `ptype=${ptype}`,
+  ];
+  if (state) qs.push(`state=${state}`);
+  if (params.ncode) qs.push(`ncode=${params.ncode}`);
+  const url = `${BASE}?${qs.join("&")}`;
 
-  const res = await fetch(url.toString(), {
+  const res = await fetch(url, {
     headers: { accept: "application/json" },
     cache: "no-store",
   });
