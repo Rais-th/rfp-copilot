@@ -51,36 +51,68 @@ export default async function RfpsPage() {
         </div>
       ) : (
         <div className="card divide-y divide-line">
-          {rfps.map((r) => (
-            <Link
-              key={r.id}
-              href={`/rfps/${encodeURIComponent(r.id)}`}
-              className="block p-5 hover:bg-stone-50 transition-colors"
-            >
-              <div className="flex items-start justify-between gap-6">
-                <div className="space-y-1 min-w-0">
-                  <div className="font-medium truncate">{r.title}</div>
-                  <div className="text-xs text-subtle flex items-center gap-3 flex-wrap">
-                    {r.agency ? <span>{r.agency}</span> : null}
-                    {r.category ? <span>{r.category}</span> : null}
-                    <span className="mono">{r.sourceRef}</span>
+          {rfps.map((r) => {
+            const sourceLabel =
+              r.source === "sam"
+                ? "SAM.gov"
+                : r.source === "upload"
+                  ? "Uploaded"
+                  : r.source === "url"
+                    ? "Submitted"
+                    : r.source;
+            const daysLeft = r.closesAt
+              ? Math.ceil(
+                  (new Date(r.closesAt).getTime() - Date.now()) /
+                    (1000 * 60 * 60 * 24),
+                )
+              : null;
+            const urgent = daysLeft !== null && daysLeft <= 7;
+            return (
+              <Link
+                key={r.id}
+                href={`/rfps/${encodeURIComponent(r.id)}`}
+                className="block p-5 hover:bg-stone-50 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-6">
+                  <div className="space-y-1.5 min-w-0 flex-1">
+                    <div className="font-medium leading-snug">{r.title}</div>
+                    <div className="text-xs text-subtle flex items-center gap-3 flex-wrap">
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-stone-100 text-ink/70 text-[11px] font-medium">
+                        {sourceLabel}
+                      </span>
+                      {r.agency ? <span>{r.agency}</span> : null}
+                      {r.category ? <span>{r.category}</span> : null}
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <div className="text-xs text-subtle">Closes</div>
+                    <div
+                      className={`mono text-sm ${urgent ? "text-red-700 font-medium" : ""}`}
+                    >
+                      {r.closesAt
+                        ? new Date(r.closesAt).toLocaleDateString(undefined, {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })
+                        : "TBD"}
+                    </div>
+                    {daysLeft !== null && daysLeft >= 0 ? (
+                      <div
+                        className={`text-[11px] mt-0.5 ${urgent ? "text-red-700" : "text-subtle"}`}
+                      >
+                        {daysLeft === 0
+                          ? "today"
+                          : daysLeft === 1
+                            ? "1 day left"
+                            : `${daysLeft} days left`}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <div className="text-xs text-subtle">Closes</div>
-                  <div className="mono text-sm">
-                    {r.closesAt
-                      ? new Date(r.closesAt).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })
-                      : "TBD"}
-                  </div>
-                </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

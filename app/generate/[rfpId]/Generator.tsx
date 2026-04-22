@@ -63,8 +63,12 @@ export default function Generator({
         body: JSON.stringify({ rfpId, profile }),
       });
       if (!res.ok || !res.body) {
-        const body = await res.text();
-        throw new Error(body || `HTTP ${res.status}`);
+        await res.text().catch(() => "");
+        throw new Error(
+          res.status === 409
+            ? "This RFP is not yet parsed. Come back in a minute, or submit the full PDF via Submit RFP."
+            : "The draft generator is temporarily unavailable. Try again in a moment."
+        );
       }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -93,10 +97,12 @@ export default function Generator({
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ rfpId, draft, profile }),
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        throw new Error("Validation service is unavailable. Try again in a moment.");
+      }
       setReport(await res.json());
     } catch (e) {
-      setErr((e as Error).message);
+      setErr(friendlyError((e as Error).message));
     } finally {
       setValidating(false);
     }
@@ -297,4 +303,12 @@ function Section({ title, items }: { title: string; items: string[] }) {
 
 function safeName(s: string) {
   return s.replace(/[^a-z0-9\-_.]/gi, "-");
+}
+
+function friendlyError(msg: string): string {
+  if (!msg) return "Something went wrong.";
+  if (msg.startsWith("{") || msg.includes("error")) {
+    return "Something went wrong with the validation. Try again.";
+  }
+  return msg;
 }

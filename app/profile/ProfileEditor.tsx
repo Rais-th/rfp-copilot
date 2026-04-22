@@ -232,26 +232,30 @@ export default function ProfileEditor() {
         />
       </Section>
 
-      <div className="flex items-center justify-between sticky bottom-0 bg-paper/90 backdrop-blur py-3 border-t hairline">
-        <div className="text-xs text-subtle">
-          {saved ? "Saved to your browser." : "Changes are not saved yet."}
-        </div>
-        <div className="flex gap-2">
-          <label className="btn btn-ghost cursor-pointer">
-            Import JSON
-            <input
-              type="file"
-              accept="application/json"
-              className="hidden"
-              onChange={upload}
-            />
-          </label>
-          <button type="button" onClick={download} className="btn btn-ghost">
-            Export JSON
-          </button>
-          <button type="submit" className="btn btn-primary">
-            Save profile
-          </button>
+      <div className="h-20" aria-hidden />
+
+      <div className="fixed left-0 right-0 bottom-0 bg-paper border-t hairline z-20">
+        <div className="container-narrow flex items-center justify-between py-3 gap-3 flex-wrap">
+          <div className="text-xs text-subtle">
+            {saved ? "Saved to your browser." : "Changes are not saved yet."}
+          </div>
+          <div className="flex gap-2">
+            <label className="btn btn-ghost cursor-pointer">
+              Import JSON
+              <input
+                type="file"
+                accept="application/json"
+                className="hidden"
+                onChange={upload}
+              />
+            </label>
+            <button type="button" onClick={download} className="btn btn-ghost">
+              Export JSON
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Save profile
+            </button>
+          </div>
         </div>
       </div>
 

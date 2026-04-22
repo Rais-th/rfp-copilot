@@ -28,25 +28,63 @@ export async function POST(req: NextRequest) {
   }
 
   const rfp = await getRfpById(parsed.data.rfpId);
-  if (!rfp?.parsed) {
-    return NextResponse.json({ error: "rfp_not_parsed" }, { status: 409 });
+  if (!rfp) {
+    return NextResponse.json(
+      {
+        overall: "warn",
+        checks: [],
+        missingSections: [],
+        unsupportedClaims: [],
+        limitOverages: [],
+        notice:
+          "RFP record not found. Cannot validate against source requirements.",
+      },
+      { status: 200 },
+    );
   }
 
-  const res = await anthropic.messages.create({
-    model: MODEL_VALIDATE,
-    max_tokens: 3000,
-    system: SYSTEM,
-    messages: [
+  const hasStructured =
+    !!rfp.parsed &&
+    Array.isArray(rfp.parsed.requiredSections) &&
+    rfp.parsed.requiredSections.length > 0;
+
+  if (!hasStructured) {
+    return NextResponse.json(
       {
-        role: "user",
-        content: `RFP REQUIRED SECTIONS:
-${parsed.data.profile ? "" : ""}${JSON.stringify(rfp.parsed.requiredSections, null, 2)}
+        overall: "warn",
+        checks: [
+          {
+            id: "no_source_structure",
+            label: "No structured requirements from source",
+            status: "warn",
+            detail:
+              "This RFP does not have parsed required sections. Submit the full solicitation PDF via Submit RFP for a structured validation.",
+          },
+        ],
+        missingSections: [],
+        unsupportedClaims: [],
+        limitOverages: [],
+      },
+      { status: 200 },
+    );
+  }
+
+  try {
+    const res = await anthropic.messages.create({
+      model: MODEL_VALIDATE,
+      max_tokens: 3000,
+      system: SYSTEM,
+      messages: [
+        {
+          role: "user",
+          content: `RFP REQUIRED SECTIONS:
+${JSON.stringify(rfp.parsed!.requiredSections, null, 2)}
 
 RFP EVALUATION CRITERIA:
-${JSON.stringify(rfp.parsed.evaluationCriteria, null, 2)}
+${JSON.stringify(rfp.parsed!.evaluationCriteria, null, 2)}
 
 RFP REQUIRED ATTACHMENTS:
-${JSON.stringify(rfp.parsed.requiredAttachments, null, 2)}
+${JSON.stringify(rfp.parsed!.requiredAttachments, null, 2)}
 
 DRAFT:
 """
@@ -61,22 +99,75 @@ Return JSON with this shape:
   "unsupportedClaims": ["string"],
   "limitOverages": ["string"]
 }`,
-      },
-    ],
-  });
+        },
+      ],
+    });
 
-  const block = res.content.find((c) => c.type === "text");
-  const text = block && block.type === "text" ? block.text : "";
-  const json2 = extractJson(text);
-  if (!json2) {
+    const block = res.content.find((c) => c.type === "text");
+    const text = block && block.type === "text" ? block.text : "";
+    const jsonText = extractJson(text);
+    if (!jsonText) {
+      return NextResponse.json(
+        {
+          overall: "warn",
+          checks: [
+            {
+              id: "model_no_structured_response",
+              label: "Validation model returned no structured output",
+              status: "warn",
+              detail:
+                "Claude did not return parseable JSON for this draft. Try again, or edit the draft first.",
+            },
+          ],
+          missingSections: [],
+          unsupportedClaims: [],
+          limitOverages: [],
+        },
+        { status: 200 },
+      );
+    }
+
+    try {
+      const report = JSON.parse(jsonText);
+      return NextResponse.json(report);
+    } catch {
+      return NextResponse.json(
+        {
+          overall: "warn",
+          checks: [
+            {
+              id: "model_json_parse_fail",
+              label: "Could not parse validation output",
+              status: "warn",
+              detail: "The validation model produced malformed JSON.",
+            },
+          ],
+          missingSections: [],
+          unsupportedClaims: [],
+          limitOverages: [],
+        },
+        { status: 200 },
+      );
+    }
+  } catch (err) {
     return NextResponse.json(
-      { error: "parse_failed", raw: text.slice(0, 400) },
-      { status: 502 },
+      {
+        overall: "warn",
+        checks: [
+          {
+            id: "validation_exception",
+            label: "Validation could not run",
+            status: "warn",
+            detail: (err as Error).message.slice(0, 300),
+          },
+        ],
+        missingSections: [],
+        unsupportedClaims: [],
+        limitOverages: [],
+      },
+      { status: 200 },
     );
   }
-  return new NextResponse(json2, {
-    headers: { "content-type": "application/json" },
-  });
 }
 
 function extractJson(text: string): string | null {
